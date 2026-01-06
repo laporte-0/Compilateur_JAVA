@@ -1,0 +1,54 @@
+
+// Basic incremental milestones
+src/test/resources/Jalon/Test101.txt  hello 42
+src/test/resources/Jalon/Test102.txt  hello 6 * 7 
+src/test/resources/Jalon/Test103.txt  classes et méthodes (simple)
+src/test/resources/Jalon/Test104.txt  classes et méthodes avec listes d'arguments
+src/test/resources/Jalon/Test105.txt  classes et méthodes (complet avec listes doubles)
+src/test/resources/Jalon/Test106.txt  expressions
+src/test/resources/Jalon/Test107.txt  instructions
+src/test/resources/Jalon/Test109.txt  Tableaux d'entier
+
+// Syntax Error
+src/test/resources/SyntaxError/Test301.txt  Erreurs Lexicales
+src/test/resources/SyntaxError/Test302.txt  Erreurs Syntaxiques
+
+// Semantic Error
+src/test/resources/SemanticError/Test401.txt   Contrôle de type
+src/test/resources/SemanticError/Test402.txt   Appel de méthodes
+src/test/resources/SemanticError/Test403.txt   Héritage de classes
+src/test/resources/SemanticError/Test404.txt   404 file not fouund !!!
+src/test/resources/SemanticError/Test405.txt   Undefined variable, methodes, classes
+src/test/resources/SemanticError/Test409.txt   Contrôle de type et Tableau
+
+// Other runing examples
+src/test/resources/Running/StressTestSyntax303.txt    Stress test (sans), syntaxiquement correct
+src/test/resources/Running/StressTestSyntax309.txt    Stress test (avec tableaux), syntaxiquement correct
+src/test/resources/Running/Test201.txt                Opérateurs
+src/test/resources/Running/Test202.txt                Expressions et Variables
+src/test/resources/Running/Test203.txt                Initialisation, ...
+src/test/resources/Running/Test204.txt                Appel de fonction et arguments (<4)
+src/test/resources/Running/Test214.txt                Appel de fonction et arguments (>=4)
+src/test/resources/Running/Test209.txt                Tableaux d'entiers
+src/test/resources/Running/Test219.txt                Tableaux de booléens
+src/test/resources/Running/AckermannFunction.txt      Appel Récursif
+src/test/resources/Running/ImplemSimplisticBigNum.txt BigNum simpliste avec Tableaux
+src/test/resources/Running/PeanoPlusUTF8Матрёшка.txt  UTF8 cyrillique, equals(), pointeur et récursion
+
+// From book "Modern Compilation in Java" Andrew J. Appel
+src/test/resources/Modern/BinarySearch.txt  Recherche sur Tableau
+src/test/resources/Modern/BinaryTree.txt    Structure d'arbre de recherche
+src/test/resources/Modern/BinaryVisitor.txt BinaryTree avec Visiteur (et polymorphisme)
+src/test/resources/Modern/BubbleSort.txt    Tri itératif sur tableau
+src/test/resources/Modern/Factorial.txt     Appel Récursif
+src/test/resources/Modern/LinearSearch.txt  Recherche sur Tableau
+src/test/resources/Modern/LinkedList.txt    Structure de liste Chainée, ( avec polymorphisme )
+src/test/resources/Modern/QuickSort.txt     Tri récursif sur tableau
+
+// One day... the grail
+src/test/resources/OneDayTheGrail/Test901.txt   Héritage/surcharge/polymorphisme...
+
+
+
+
+
