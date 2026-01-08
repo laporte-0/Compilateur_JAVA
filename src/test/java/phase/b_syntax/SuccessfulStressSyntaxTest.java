@@ -41,4 +41,5 @@ final class SuccessfulStressSyntaxTest {
 		Assertions.assertDoesNotThrow(
 				() -> new Compiler("Running/StressTestSyntax209.txt", "StressTestSyntax209.mips").execute());
 	}
+
 }

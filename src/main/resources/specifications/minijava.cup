@@ -105,6 +105,15 @@ type      ::= IDENT:a
            |  BOOLEAN:a
                 {: RESULT = Type.build(MJPrimitiveTypes.BOOL);
                    RESULT.addPosition(axleft, axright); :}
+           |  INT:a LBRACK RBRACK:z
+                {: RESULT = Type.build(MJPrimitiveTypes.INT_ARRAY);
+                   RESULT.addPosition(axleft, zxright); :}
+           |  BOOLEAN:a LBRACK RBRACK:z
+                {: RESULT = Type.build(MJPrimitiveTypes.BOOL_ARRAY);
+                   RESULT.addPosition(axleft, zxright); :}
+           |  STRING:a LBRACK RBRACK:z
+                {: RESULT = Type.build(MJPrimitiveTypes.STRING_ARRAY);
+                   RESULT.addPosition(axleft, zxright); :}
 ;
 // Listes éventuellement vides avec Virgule
 formal    ::= type:a ident:z
@@ -143,6 +152,9 @@ stmt      ::= SYSTEM:a DOT OUT DOT PRINTLN LPAREN expr:b RPAREN SEMI:z
                    RESULT.addPosition(axleft, zxright); :}
            |  ident:a ASSIGN expr:b SEMI:z
                 {: RESULT = StmtAssign.build(a, b);
+                   RESULT.addPosition(axleft, zxright); :}
+           |  ident:a LBRACK expr:b RBRACK ASSIGN expr:c SEMI:z
+                {: RESULT = StmtArrayAssign.build(a, b, c);
                    RESULT.addPosition(axleft, zxright); :}
            |  LBRACE:a methBody:b RBRACE:z
                 {: RESULT = StmtBlock.build(b.vars(), b.instructions());
@@ -194,4 +206,13 @@ expr      ::= LIT_INT:a
            |  MINUS LIT_INT:a
                 {: RESULT = ExprLiteralInt.build(- a);
                    RESULT.addPosition(axleft, axright); :}
+           |  expr:a LBRACK expr:b RBRACK:z
+                {: RESULT = ExprArrayLookup.build(a, b);
+                   RESULT.addPosition(axleft, zxright); :}
+           |  expr:a DOT LENGTH:z
+                {: RESULT = ExprArrayLength.build(a);
+                   RESULT.addPosition(axleft, zxright); :}
+           |  NEW:a INT LBRACK expr:b RBRACK:z
+                {: RESULT = ExprArrayNew.build(b, MJPrimitiveTypes.INT_ARRAY);
+                   RESULT.addPosition(axleft, zxright); :}
 ;
