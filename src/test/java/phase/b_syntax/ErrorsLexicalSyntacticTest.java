@@ -83,35 +83,35 @@ final class ErrorsLexicalSyntacticTest {
 		Assertions.assertDoesNotThrow(() -> stringCompiler(toParse));
 	}
 
-	@Test@Disabled
+	@Test
 	@DisplayName("invalid C89 Comment")
 	void test301lexicalError1() {
 		String toParse = codeInFooMain("/* So should this /* and this still */ but not this */ // invalid C89 Comment");
 		Assertions.assertThrows(CompilerException.class, () -> stringCompiler(toParse));
 	}
 
-	@Test@Disabled
+	@Test
 	@DisplayName("invalid identifier")
 	void test301lexicalError2() {
 		String toParse = codeInFooMain("int 0a; // invalid identifier");
 		Assertions.assertThrows(CompilerException.class, () -> stringCompiler(toParse));
 	}
 
-	@Test@Disabled
+	@Test
 	@DisplayName("invalid Decimal Literal (should be Octal!)")
 	void test301lexicalError3() {
 		String toParse = codeInFooMain("int a = 01; // invalid Decimal Literal (should be Octal!)");
 		Assertions.assertThrows(CompilerException.class, () -> stringCompiler(toParse));
 	}
 
-	@Test@Disabled
+	@Test
 	@DisplayName("not a Literal")
 	void test301lexicalError4() {
 		String toParse = codeInFooMain("bool b=True; // not a Literal");
 		Assertions.assertThrows(CompilerException.class, () -> stringCompiler(toParse));
 	}
 
-	@Test@Disabled
+	@Test
 	@DisplayName("unknown character /")
 	void test301lexicalError5() {
 		String toParse = codeInFooMain("int a = 3 / 4; // unknown character /");

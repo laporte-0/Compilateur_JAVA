@@ -8,23 +8,44 @@ action code {:
 /* Lexèmes (Tokens) */
 terminal CLASS, MAIN, OUT, PRINTLN, PUBLIC, STATIC, STRING, SYSTEM, VOID;
 terminal DOT, SEMI, LBRACE, RBRACE, LPAREN, RPAREN;
-terminal LBRACK, RBRACK;
+terminal BOOLEAN, ELSE, EXTENDS, IF, INT, NEW, RETURN, WHILE;
+terminal AND, ASSIGN, LESS, MINUS, NOT, PLUS, TIMES, COMMA;
+terminal LBRACK, RBRACK, LENGTH;
 /* Lexèmes avec valeur sémantique */
 terminal Integer LIT_INT;
+terminal Boolean LIT_BOOL;
 terminal String  IDENT;
 /* Variables de la grammaire et Arbre de syntaxe */
 nonterminal Axiom           axiom;
 nonterminal KlassMain       klassMain;
 nonterminal Ident           ident;
+nonterminal AstList<Klass>  klassList;
+nonterminal Klass           klass;
+nonterminal Ident           parent;
+nonterminal KlassBody       klassBody;
+nonterminal AstMethod       method;
+nonterminal MethodBody      methBody;
+nonterminal Type            type;
+nonterminal Variable        variable;
+nonterminal Formal          formal;
+nonterminal AstList<Formal> formals, formals1;
+nonterminal AstList<Expr>   args, args1;
 nonterminal Stmt            stmt;
 nonterminal Expr            expr;
 
 /* Associativités et Priorités */
+precedence right ASSIGN;           
+precedence left  AND;
+precedence left  LESS;             
+precedence left  PLUS, MINUS;      
+precedence left  TIMES;            
+precedence right NOT;              
+precedence left  DOT, LBRACK, RBRACK, LPAREN, RPAREN; 
 
 /* Règles de Productions */
-axiom     ::= klassMain:a
-                {: RESULT = Axiom.build(a, new AstList<>());
-                   RESULT.addPosition(axleft, axright); :}
+axiom     ::= klassMain:a klassList:z
+                {: RESULT = Axiom.build(a, z);
+                   RESULT.addPosition(axleft, zxright); :}
 ;
 klassMain ::= CLASS:a ident:b LBRACE PUBLIC STATIC VOID MAIN
               LPAREN STRING LBRACK RBRACK ident:c RPAREN
@@ -36,11 +57,141 @@ ident     ::= IDENT:a
                 {: RESULT = Ident.build(a);
                    RESULT.addPosition(axleft, axright); :}
 ;
+klassList ::= /* vide */
+                {: RESULT = new AstList<>();            :}
+           |  klassList:a klass:z
+                {: RESULT = a; RESULT.add(z);
+                   RESULT.addPosition(axleft, zxright); :}
+;
+klass     ::= CLASS:a ident:b parent:c LBRACE klassBody:d RBRACE:z
+                {: RESULT = Klass.build(b, c, d.attributs(), d.methodes());
+                   RESULT.addPosition(axleft, zxright); :}
+;
+parent    ::= /* vide */
+                {: RESULT = Ident.build("Object");        :}
+           |  EXTENDS:a ident:z
+                {: RESULT = z;
+                   RESULT.addPosition(axleft, zxright); :}
+;
+klassBody ::= /* vide */
+                {: RESULT = KlassBody.build();         :}
+           |  klassBody:a variable:z
+                {: RESULT = a; RESULT.attributs().add(z);      :}
+           |  klassBody:a method:z
+                {: RESULT = a; RESULT.methodes().add(z);   :}
+;
+method    ::= PUBLIC:a type:b ident:c LPAREN formals:d RPAREN
+              LBRACE methBody:e RETURN expr:f SEMI RBRACE:z
+                {: RESULT = AstMethod.build(b, c, d, e.vars(), e.instructions(), f);
+                   RESULT.addPosition(axleft, zxright); :}
+;
+methBody  ::= /* vide */
+                {: RESULT = MethodBody.build();          :}
+           |  methBody:a variable:z
+                {: RESULT = a; RESULT.vars().add(z);      :}
+           |  methBody:a stmt:z
+                {: RESULT = a; RESULT.instructions().add(z);     :}
+;
+variable  ::= type:a ident:b SEMI:z
+                {: RESULT = Variable.build(a, b);
+                   RESULT.addPosition(axleft, zxright); :}
+;
+type      ::= IDENT:a
+                {: RESULT = Type.build(a);
+                   RESULT.addPosition(axleft, axright); :}
+           |  INT:a
+                {: RESULT = Type.build(MJPrimitiveTypes.INT);
+                   RESULT.addPosition(axleft, axright); :}
+           |  BOOLEAN:a
+                {: RESULT = Type.build(MJPrimitiveTypes.BOOL);
+                   RESULT.addPosition(axleft, axright); :}
+;
+// Listes éventuellement vides avec Virgule
+formal    ::= type:a ident:z
+                {: RESULT = Formal.build(a, z);
+                   RESULT.addPosition(axleft, zxright); :}
+;
+formals   ::= /* vide */
+                {: RESULT = new AstList<>(); :}
+           |  formals1:a
+                {: RESULT = a;
+                   RESULT.addPosition(axleft, axright); :}
+;
+formals1  ::= formal:a
+                {: RESULT = new AstList<>(); RESULT.add(a);
+                   RESULT.addPosition(axleft, axright); :}
+           |  formals1:a COMMA formal:z
+                {: RESULT = a; RESULT.add(z);
+                   RESULT.addPosition(axleft, zxright); :}
+;
+args      ::= /* vide */
+                {: RESULT = new AstList<>(); :}
+           |  args1:a
+                {: RESULT = a;
+                   RESULT.addPosition(axleft, axright); :}
+;
+args1     ::= expr:a
+                {: RESULT = new AstList<>(); RESULT.add(a);
+                   RESULT.addPosition(axleft, axright); :}
+           |  args1:a COMMA expr:z
+                {: RESULT = a; RESULT.add(z);
+                   RESULT.addPosition(axleft, zxright); :}
+;
+// Instructions
 stmt      ::= SYSTEM:a DOT OUT DOT PRINTLN LPAREN expr:b RPAREN SEMI:z
                 {: RESULT = StmtPrint.build(b);
                    RESULT.addPosition(axleft, zxright); :}
+           |  ident:a ASSIGN expr:b SEMI:z
+                {: RESULT = StmtAssign.build(a, b);
+                   RESULT.addPosition(axleft, zxright); :}
+           |  LBRACE:a methBody:b RBRACE:z
+                {: RESULT = StmtBlock.build(b.vars(), b.instructions());
+                   RESULT.addPosition(axleft, zxright); :}
+           |  IF:a LPAREN expr:b RPAREN stmt:c ELSE stmt:z
+                {: RESULT = StmtIf.build(b, c, z);
+                   RESULT.addPosition(axleft, zxright); :}
+           |  WHILE:a LPAREN expr:b RPAREN stmt:z
+                {: RESULT = StmtWhile.build(b, z);
+                   RESULT.addPosition(axleft, zxright); :}
 ;
+// Expressions
 expr      ::= LIT_INT:a
                 {: RESULT = ExprLiteralInt.build(a);
+                   RESULT.addPosition(axleft, axright); :}
+           |  LIT_BOOL:a
+                {: RESULT = ExprLiteralBool.build(a);
+                   RESULT.addPosition(axleft, axright); :}
+           |  LPAREN:a expr:b RPAREN:z
+                {: RESULT = b;
+                   RESULT.addPosition(axleft, zxright); :}
+           |  expr:a AND expr:z
+                {: RESULT = ExprOpBin.build(a, MJOperators.AND, z);
+                   RESULT.addPosition(axleft, zxright); :}
+           |  expr:a LESS expr:z
+                {: RESULT = ExprOpBin.build(a, MJOperators.LESS, z);
+                   RESULT.addPosition(axleft, zxright); :}
+           |  expr:a PLUS expr:z
+                {: RESULT = ExprOpBin.build(a, MJOperators.PLUS, z);
+                   RESULT.addPosition(axleft, zxright); :}
+           |  expr:a MINUS expr:z
+                {: RESULT = ExprOpBin.build(a, MJOperators.MINUS, z);
+                   RESULT.addPosition(axleft, zxright); :}
+           |  expr:a TIMES expr:z
+                {: RESULT = ExprOpBin.build(a, MJOperators.TIMES, z);
+                   RESULT.addPosition(axleft, zxright); :}
+           |  NOT:a expr:z
+                {: RESULT = ExprOpUn.build(MJOperators.NOT, z);
+                   RESULT.addPosition(axleft, zxright); :}
+           |  expr:a DOT ident:b LPAREN args:c RPAREN:z
+                {: RESULT = ExprCall.build(a, b, c);
+                   RESULT.addPosition(axleft, zxright); :}
+           |  ident:a
+                {: RESULT = ExprIdent.build(a);
+                   RESULT.addPosition(axleft, axright); :}
+           |  NEW:a ident:b LPAREN RPAREN:z
+                {: RESULT = ExprNew.build(b);
+                   RESULT.addPosition(axleft, zxright); :}
+           |  MINUS LIT_INT:a
+                {: RESULT = ExprLiteralInt.build(- a);
                    RESULT.addPosition(axleft, axright); :}
 ;

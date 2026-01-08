@@ -78,7 +78,7 @@ final class SuccessfulMilestonesTest extends common.SuccessfulMilestonesTest {
 		super.jalonFile1();
 	}
 
-	@Test@Disabled
+	@Test
 	@Override
 	protected void jalonFile2() {
 		super.jalonFile2();
@@ -96,19 +96,19 @@ final class SuccessfulMilestonesTest extends common.SuccessfulMilestonesTest {
 		super.jalonFile4();
 	}
 
-	@Test@Disabled
+	@Test
 	@Override
 	protected void jalonFile5() {
 		super.jalonFile5();
 	}
 
-	@Test@Disabled
+	@Test
 	@Override
 	protected void jalonFile6() {
 		super.jalonFile6();
 	}
 
-	@Test@Disabled
+	@Test
 	@Override
 	protected void jalonFile7() {
 		super.jalonFile7();
@@ -116,7 +116,7 @@ final class SuccessfulMilestonesTest extends common.SuccessfulMilestonesTest {
 
 	// pas de jalon 8
 
-	@Test@Disabled
+	@Test
 	@Override
 	protected void jalonFile9() {
 		super.jalonFile9();
