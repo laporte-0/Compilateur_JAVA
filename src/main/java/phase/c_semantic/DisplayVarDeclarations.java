@@ -2,7 +2,11 @@ package phase.c_semantic;
 
 import compil.util.Debug;
 import compil.util.IndentWriter;
+import phase.b_syntax.ast.AstMethod;
 import phase.b_syntax.ast.AstVisitorDefault;
+import phase.b_syntax.ast.Formal;
+import phase.b_syntax.ast.Klass;
+import phase.b_syntax.ast.Variable;
 
 /**
  * Premier exemple de Visiteur : détection des déclarations de variable.
@@ -32,4 +36,30 @@ public class DisplayVarDeclarations extends AstVisitorDefault {
     }
 
     /////////////////// Visit ////////////////////
+    @Override
+    public void visit(final Formal n) {
+        out.print(n.varId().name() + "(formal), ");
+        defaultVisit(n);
+    }
+
+    @Override
+    public void visit(final Variable n) {
+        out.print(n.varId().name() + (insideMethod ? "(local)" : "(field)") + ", ");
+        defaultVisit(n);
+    }
+
+    @Override
+    public void visit(final AstMethod n) {
+        out.print(n.methodId().name() + "(method), ");
+        insideMethod = true;
+        defaultVisit(n);
+        insideMethod = false;
+    }
+
+    @Override
+    public void visit(final Klass n) {
+        out.print(n.klassId().name() + " (klasse), ");
+        defaultVisit(n);
+    }
+
 }

@@ -17,8 +17,9 @@ sans être finalisé, et ce qui pose problème.
 
 ### État d'avancement des travaux sur la phase
 
-- [] À FAIRE 1 : terminé/presque terminé/en cours/commencé/non commencé
-- [] À FAIRE 2 : terminé/presque terminé/en cours/commencé/non commencé
+- [x] phase 1 : terminée
+- [] phase 2 : en cours
+- [] phase 3 : non commencé
 - [] À FAIRE 3 : terminé/presque terminé/en cours/commencé/non commencé
 ### Questions
 
