@@ -3,9 +3,14 @@ package phase.c_semantic;
 import compil.util.Debug;
 import compil.util.MJPrimitiveTypes;
 import compil.util.MJTypeClass;
+import phase.b_syntax.ast.AstMethod;
 import phase.b_syntax.ast.AstNode;
 import phase.b_syntax.ast.AstVisitorDefault;
+import phase.b_syntax.ast.Formal;
+import phase.b_syntax.ast.Klass;
 import phase.b_syntax.ast.KlassMain;
+import phase.b_syntax.ast.StmtBlock;
+import phase.b_syntax.ast.Variable;
 import phase.c_semantic.symtab.Info;
 import phase.c_semantic.symtab.InfoKlass;
 import phase.c_semantic.symtab.InfoMethod;
@@ -79,7 +84,7 @@ public class BuildSymTab extends AstVisitorDefault {
 		final InfoKlass kl = new InfoKlass(OBJECT, null);
 		sc = newKlassScope(sc, kl);
 		final InfoMethod m = new InfoMethod(MJPrimitiveTypes.BOOL, "equals",
-				new InfoVar("this", new MJTypeClass("Object")), new InfoVar("argEquals", new MJTypeClass("Object")));
+				new InfoVar("this", new MJTypeClass("Object")), new InfoVar("o", new MJTypeClass("Object")));
 		newMethodScope(sc, m);
 	}
 
@@ -177,6 +182,24 @@ public class BuildSymTab extends AstVisitorDefault {
 	}
 
 	////////////// Visit ////////////////////////
+	/**
+	 * Redéfinition de la visite par défaut : Intégration de l'héritage par défaut
+	 * des attributs hérités (Scope, Klass).
+	 */
+	@Override
+	public void defaultVisit(final AstNode n) {
+		setKlass(n, currentKlass);
+		setScope(n, currentScope);
+		for (AstNode f : n) {
+			f.accept(this);
+		}
+		currentKlass = getKlass(n);
+		currentScope = getScope(n);
+	}
+
+	// Visites Spécifiques :
+	// - Création de portées : KlassMain, Klass, Method, StmtBlock
+	// - Déclarations : KlassMain, Klass, Method, Variable, Formal (in Method)
 
 	/**
 	 * Déclaration de la classe avec la méthode main de Minijava. Pour l'exemple,
@@ -194,6 +217,68 @@ public class BuildSymTab extends AstVisitorDefault {
 				new InfoVar(n.argId().name(), MJPrimitiveTypes.STRING_ARRAY));
 		currentScope = newMethodScope(currentScope, m);
 		n.stmt().accept(this);
+		currentKlass = getKlass(n);
+		currentScope = getScope(n);
+	}
+
+	@Override
+	public void visit(final Klass n) {
+		setKlass(n, currentKlass);
+		setScope(n, currentScope);
+		currentKlass = new InfoKlass(n.klassId().name(), n.parentId().name());
+		this.currentScope = newKlassScope(currentScope, currentKlass);
+		n.klassId().accept(this);
+		n.parentId().accept(this);
+		n.vars().accept(this);
+		n.methods().accept(this);
+		currentKlass = getKlass(n);
+		currentScope = getScope(n);
+
+	}
+
+	@Override
+	public void visit(final AstMethod n) {
+		setKlass(n, currentKlass);
+		setScope(n, currentScope);
+		// les paramètres formels explicites
+		final InfoVar[] formals = new InfoVar[n.fargs().nbChildren() + 1];
+		int index = 1;
+		for (AstNode f : n.fargs()) {
+			formals[index] = new InfoVar(((Formal) f).varId().name(), ((Formal) f).type().type());
+			index++;
+		}
+		// le paramètre implicite "this"
+		formals[0] = new InfoVar("this", new MJTypeClass(getKlass(n).getName()));
+		// la définition de la méthode
+		final InfoMethod m = new InfoMethod(n.returnType().type(), n.methodId().name(), formals);
+		currentScope = newMethodScope(currentScope, m);
+		n.returnType().accept(this);
+		n.methodId().accept(this);
+		n.fargs().accept(this); // ne fait rien !
+		n.vars().accept(this);
+		n.stmts().accept(this);
+		n.returnExp().accept(this);
+		currentKlass = getKlass(n);
+		currentScope = getScope(n);
+	}
+
+	@Override
+	public void visit(final Variable n) {
+		setKlass(n, currentKlass);
+		setScope(n, currentScope);
+		final InfoVar v = new InfoVar(n.varId().name(), n.typeId().type());
+		checkRedef(getScope(n).insertVariable(v));
+		currentKlass = getKlass(n);
+		currentScope = getScope(n);
+	}
+
+	@Override
+	public void visit(final StmtBlock n) {
+		setKlass(n, currentKlass);
+		setScope(n, currentScope);
+		currentScope = new Scope(currentScope);
+		n.vars().accept(this);
+		n.stmts().accept(this);
 		currentKlass = getKlass(n);
 		currentScope = getScope(n);
 	}
