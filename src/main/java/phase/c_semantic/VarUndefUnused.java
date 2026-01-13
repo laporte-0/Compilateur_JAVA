@@ -4,8 +4,12 @@ import java.util.Collection;
 
 import compil.util.Debug;
 import compil.util.MJType;
+import phase.b_syntax.ast.AstMethod;
 import phase.b_syntax.ast.AstNode;
 import phase.b_syntax.ast.AstVisitorDefault;
+import phase.b_syntax.ast.ExprIdent;
+import phase.b_syntax.ast.StmtArrayAssign;
+import phase.b_syntax.ast.StmtAssign;
 import phase.c_semantic.symtab.InfoKlass;
 import phase.c_semantic.symtab.InfoVar;
 import phase.c_semantic.symtab.Scope;
@@ -52,6 +56,8 @@ public class VarUndefUnused extends AstVisitorDefault {
 	public boolean execute() {
 		Debug.log("= Contrôle de définitions : identificateurs non définis");
 		semanticTree.axiom().accept(this);
+		// Ne pas signaler 'this' comme inutilisé
+		this.unused.removeIf(v -> "this".equals(v.name()));
 		if (Debug.UNUSED) {
 			Debug.log("= Contrôle de définitions : variables inutilisées");
 			Debug.log(unused);
@@ -98,9 +104,74 @@ public class VarUndefUnused extends AstVisitorDefault {
 	 * @param name  l'identificateur inconnu.
 	 */
 	protected void undefError(final AstNode where, final String name) {
-		Debug.log(where + " Use of undefined identifier " + name);
+		Debug.logErr(where + " Use of undefined identifier " + name);
 		error = true;
 	}
 
 	// ///////////////// Visit ////////////////////
+	@Override
+	public void visit(final ExprIdent n) {
+		final String name = n.varId().name();
+		// 'this' is special: do not report as undefined and do not mark as unused
+		if ("this".equals(name)) {
+			final InfoVar v = getScope(n).lookupVariable("this");
+			if (v != null) {
+				this.unused.remove(v);
+			}
+			return;
+		}
+		final InfoVar v = getScope(n).lookupVariable(name);
+		if (v == null) {
+			undefError(n, name);
+		} else {
+			this.unused.remove(v);
+		}
+	}
+
+	@Override
+	public void visit(final StmtAssign n) {
+		final String name = n.varId().name();
+		final InfoVar v = getScope(n).lookupVariable(name);
+		if (v == null) {
+			undefError(n, name);
+		} else {
+			this.unused.remove(v);
+		}
+		// visiter la valeur
+		n.value().accept(this);
+	}
+
+	@Override
+	public void visit(final StmtArrayAssign n) {
+		final String name = n.arrayId().name();
+		final InfoVar v = getScope(n).lookupVariable(name);
+		if (v == null) {
+			undefError(n, name);
+		} else {
+			this.unused.remove(v);
+		}
+		// visiter index et valeur
+		n.index().accept(this);
+		n.value().accept(this);
+	}
+
+	@Override
+	public void visit(final AstMethod n) {
+		// Ne pas vérifier les identificateurs de méthode ici (fait après le contrôle de type)
+		// Retirer 'this' de la liste des variables inutilisées pour cette méthode
+		final Scope sc = getScope(n);
+		if (sc != null) {
+			final InfoVar thisVar = sc.lookupVariable("this");
+			if (thisVar != null) {
+				this.unused.remove(thisVar);
+			}
+		}
+		// visiter le corps pour détecter les usages de variables
+		n.fargs().accept(this);
+		n.vars().accept(this);
+		n.stmts().accept(this);
+		if (n.returnExp() != null) {
+			n.returnExp().accept(this);
+		}
+	}
 }

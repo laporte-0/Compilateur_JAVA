@@ -61,7 +61,7 @@ final class ErrorsSemanticsUndefOrDupTest {
 		Assertions.assertDoesNotThrow(() -> stringCompiler(codeInBarBar("")));
 	}
 
-	@Test@Disabled
+	@Test
 	@DisplayName("duplicate attribute")
 	void test405SemanticError1() {
 		String toParse = codeInBarBar("") + "class Other {int i; boolean i;}";
@@ -104,7 +104,7 @@ final class ErrorsSemanticsUndefOrDupTest {
 						+ "class Other {Bar op; public Bar get() {return op;} public int get() {return 0;}// Fail Duplication\n }")));
 	}
 
-	@Test@Disabled
+	@Test
 	@DisplayName("undefined variable (type is undef, then type mismatch)")
 	void test405SemanticError7() {
 		String toParse = codeInBarBar("op = oper; // FAIL : \"oper\" undef (+ type)");

@@ -87,7 +87,7 @@ class SuccessfulMilestonesTest extends common.SuccessfulMilestonesTest {
 		super.jalonFile2();
 	}
 
-	@Test@Disabled
+	@Test
 	@Override
 	protected void jalonFile3() {
 		super.jalonFile3();

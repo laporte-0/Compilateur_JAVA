@@ -55,20 +55,20 @@ final class ErrorsSemanticsInheritanceTest {
 		Compiler.stopAfterSemantic();
 	}
 
-	@Test@Disabled
+	@Test
 	@DisplayName("no error in codeInFooBar")
 	void noErrorInCodeInBarBar() {
 		Assertions.assertDoesNotThrow(() -> stringCompiler(codeInBarBar("")));
 	}
 
-	@Test@Disabled
+	@Test
 	@DisplayName("class loop 1")
 	void test403SemanticError1() {
 		String toParse = codeInBarBar("") + "class G extends H { } class H extends G { } // Fail Class Loop";
 		Assertions.assertThrows(CompilerException.class, () -> stringCompiler(toParse));
 	}
 
-	@Test@Disabled
+	@Test
 	@DisplayName("class loop 2")
 	void test403SemanticError2() {
 		String toParse = codeInBarBar("") + "class F extends F { } // Fail Class Loop";
@@ -97,7 +97,7 @@ final class ErrorsSemanticsInheritanceTest {
 		Assertions.assertThrows(CompilerException.class, () -> stringCompiler(toParse));
 	}
 
-	@Test@Disabled
+	@Test
 	@DisplayName("class type mismatch 1")
 	void test403SemanticError6() {
 		String toParse = codeInBarBar("c = a; // FAIL Type");

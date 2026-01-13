@@ -82,10 +82,10 @@ public class BuildSymTab extends AstVisitorDefault {
 	protected void addObjectKlass() {
 		Scope sc = semanticTree.rootScope();
 		final InfoKlass kl = new InfoKlass(OBJECT, null);
-		sc = newKlassScope(sc, kl);
+		sc = newKlassScope(sc, kl, null);
 		final InfoMethod m = new InfoMethod(MJPrimitiveTypes.BOOL, "equals",
-				new InfoVar("this", new MJTypeClass("Object")), new InfoVar("o", new MJTypeClass("Object")));
-		newMethodScope(sc, m);
+			new InfoVar("this", new MJTypeClass("Object")), new InfoVar("o", new MJTypeClass("Object")));
+		newMethodScope(sc, m, null);
 	}
 
 	// Helpers
@@ -136,8 +136,12 @@ public class BuildSymTab extends AstVisitorDefault {
 	 * @param kl la définition de classe.
 	 * @return la portée pour la nouvelle classe.
 	 */
-	protected Scope newKlassScope(final Scope sc, final InfoKlass kl) {
-		checkRedef(sc.insertKlass(kl));
+	protected Scope newKlassScope(final Scope sc, final InfoKlass kl, final AstNode where) {
+		if (checkRedef(sc.insertKlass(kl))) {
+			if (where != null) {
+				duplicateError(where, kl.getName());
+			}
+		}
 		final Scope enfants = new Scope(sc, kl.getName());
 		kl.setScope(enfants);
 		return enfants;
@@ -151,11 +155,19 @@ public class BuildSymTab extends AstVisitorDefault {
 	 * @param m  la définition de la méthode.
 	 * @return la portée pour la nouvelle méthode.
 	 */
-	protected Scope newMethodScope(final Scope sc, final InfoMethod m) {
-		checkRedef(sc.insertMethod(m));
+	protected Scope newMethodScope(final Scope sc, final InfoMethod m, final AstNode where) {
+		if (checkRedef(sc.insertMethod(m))) {
+			if (where != null) {
+				duplicateError(where, m.getName());
+			}
+		}
 		final Scope enfants = new Scope(sc, m.getName() + "_args");
 		for (InfoVar v : m.getArgs()) {
-			checkRedef(enfants.insertVariable(v));
+			if (checkRedef(enfants.insertVariable(v))) {
+				// no AST node available for formals here
+				Debug.logErr("BuildSymtab : Duplication d'identificateur " + v);
+				this.error = true;
+			}
 		}
 		final Scope pf = new Scope(enfants, m.getName());
 		m.setScope(pf);
@@ -182,6 +194,23 @@ public class BuildSymTab extends AstVisitorDefault {
 	}
 
 	////////////// Visit ////////////////////////
+
+	/**
+	 * Signale une erreur de redéfinition avec message et localisation dans
+	 * l'AST. Erreur signalée avec traitement par exception retardé en fin
+	 * d'analyse.
+	 *
+	 * @param where le nœud de l'AST en faute.
+	 * @param name  l'identificateur redéfini.
+	 */
+	protected void duplicateError(final AstNode where, final String name) {
+		if (where == null) {
+			Debug.logErr("BuildSymtab : Identifier already defined " + name);
+		} else {
+			Debug.logErr(where + " Identifier already defined " + name);
+		}
+		this.error = true;
+	}
 	/**
 	 * Redéfinition de la visite par défaut : Intégration de l'héritage par défaut
 	 * des attributs hérités (Scope, Klass).
@@ -210,12 +239,12 @@ public class BuildSymTab extends AstVisitorDefault {
 		setKlass(n, currentKlass);
 		setScope(n, currentScope);
 		currentKlass = new InfoKlass(n.klassId().name(), OBJECT);
-		currentScope = newKlassScope(currentScope, currentKlass);
+		currentScope = newKlassScope(currentScope, currentKlass, n);
 		n.klassId().accept(this);
 		n.argId().accept(this);
 		final InfoMethod m = new InfoMethod(MJPrimitiveTypes.VOID, "main",
 				new InfoVar(n.argId().name(), MJPrimitiveTypes.STRING_ARRAY));
-		currentScope = newMethodScope(currentScope, m);
+		currentScope = newMethodScope(currentScope, m, n);
 		n.stmt().accept(this);
 		currentKlass = getKlass(n);
 		currentScope = getScope(n);
@@ -226,7 +255,7 @@ public class BuildSymTab extends AstVisitorDefault {
 		setKlass(n, currentKlass);
 		setScope(n, currentScope);
 		currentKlass = new InfoKlass(n.klassId().name(), n.parentId().name());
-		this.currentScope = newKlassScope(currentScope, currentKlass);
+		this.currentScope = newKlassScope(currentScope, currentKlass, n);
 		n.klassId().accept(this);
 		n.parentId().accept(this);
 		n.vars().accept(this);
@@ -251,7 +280,7 @@ public class BuildSymTab extends AstVisitorDefault {
 		formals[0] = new InfoVar("this", new MJTypeClass(getKlass(n).getName()));
 		// la définition de la méthode
 		final InfoMethod m = new InfoMethod(n.returnType().type(), n.methodId().name(), formals);
-		currentScope = newMethodScope(currentScope, m);
+		currentScope = newMethodScope(currentScope, m, n);
 		n.returnType().accept(this);
 		n.methodId().accept(this);
 		n.fargs().accept(this); // ne fait rien !
@@ -267,7 +296,9 @@ public class BuildSymTab extends AstVisitorDefault {
 		setKlass(n, currentKlass);
 		setScope(n, currentScope);
 		final InfoVar v = new InfoVar(n.varId().name(), n.typeId().type());
-		checkRedef(getScope(n).insertVariable(v));
+		if (checkRedef(getScope(n).insertVariable(v))) {
+			duplicateError(n, v.name());
+		}
 		currentKlass = getKlass(n);
 		currentScope = getScope(n);
 	}
