@@ -56,7 +56,7 @@ VOTRE TEXTE ICI ou SUPPRIMER CETTE LIGNE SI PAS DE COMMENTAIRE
 
 **1. lorsque l'on écrit un visiteur héritant du visiteur par défaut AstVisitorDefault, à quoi sert l'appel à la méthode defaultVisit dans les méthodes redéfinies ?**
 
-`AstVisitorDefault` fournit un comportement de visite “standard” centralisé dans `defaultVisit` : typiquement, il assure la descente récursive dans les sous-nœuds (et la propagation des informations/attributs nécessaires au fil du parcours) de manière uniforme pour tous les nœuds. Quand on redéfinit une méthode `visit()` dans un visiteur concret, appeler `defaultVisit(n)` permet donc de conserver automatiquement ce parcours par défaut, tout en ajoutant seulement le traitement spécifique (contrôles sémantiques, collecte d’infos, ...) ; ça évite de réécrire la logique de traversée à la main et surtout d’oublier de visiter certains enfants, ce qui rend les passes plus fiables et plus faciles à maintenir.
+`AstVisitorDefault` fournit un comportement de visite “standard” centralisé dans `defaultVisit` : typiquement, il assure la descente récursive dans les sous-nœuds (et la propagation des informations/attributs nécessaires au fil du parcours) de manière uniforme pour tous les nœuds. Quand on redéfinit une méthode `visit()` dans un visiteur concret, appeler `defaultVisit(n)` permet donc de conserver automatiquement ce parcours par défaut, tout en ajoutant seulement le traitement spécifique (contrôles sémantiques, collecte d’infos, ...). Ca évite de réécrire la logique de traversée à la main et surtout d’oublier de visiter certains enfants, ce qui rend les passes plus fiables et plus faciles à maintenir.
 
 **2. lorsque l'on ajoute un nouveau type de nœud dans l'AST, faut-il modifier le visiteur par défaut AstVisitorDefault ? si oui, pourquoi ?**
 
@@ -73,6 +73,26 @@ Dans notre compilateur, ce n’est pas considéré comme une redéfinition : les
 **5. notre compilateur accepte-t-il la séquence qui suit ? Qu'en est-il du compilateur javac ? `{ int a; a = 0; b = 0; int b; }`**
 
 Notre compilateur l’accepte : même si le `int b;` apparaît après `b = 0;` dans le texte, la construction de la table des symboles insère d’abord toutes les déclarations locales du bloc, puis vérifie/visite les instructions ; ainsi, `b` est déjà connu au moment où l’affectation `b = 0;` est analysée. En revanche, `javac` refuse ce code : en Java, la portée d’une variable locale commence à sa déclaration, donc utiliser `b` avant `int b;` déclenche une erreur de compilation (variable non déclarée à cet endroit).
+
+## Phase 3 : 
+
+### Questions
+
+**1. Le compilateur MiniJAVA gère-t-il la surcharge ? Si ce n'est pas le cas, que fait le compilateur ? (cf. aussi section 2.4 du Mémento MiniJAVA)**
+
+Non, ce compilateur MiniJAVA ne gère pas la surcharge (overloading) : dans une même classe, on ne peut pas déclarer plusieurs méthodes portant le même nom avec des listes de paramètres différentes, car les méthodes sont indexées uniquement par leur nom dans la table des symboles. Ainsi, si on tente de redéfinir une méthode homonyme dans la même portée de classe, la construction de la table des symboles détecte une duplication d’identificateur (`Identifier already defined …`), signale une erreur sémantique et la compilation est interrompue (au lieu de sélectionner une "bonne" signature comme le ferait Java).
+
+**2. Le compilateur MiniJAVA gère-t-il la redéfinition ? la liaison dynamique ? Si ce n'est pas le cas, que fait le compilateur ? (cf. aussi section 2.4 du Mémento MiniJAVA)**
+
+La redéfinition (override) est prise en charge de façon partielle : une classe fille peut déclarer une méthode de même nom qu’une méthode héritée, ce qui la masque dans la table des symboles lors des recherches effectuées depuis la portée de la classe fille. En revanche, le compilateur ne fait pas de liaison dynamique (tardive) des appels de méthodes (pas de “dispatch” polymorphe) : un appel `e.m(...)` est résolu de manière statique à la compilation à partir du type **déclaré** du receveur `e` (la méthode recherchée est celle trouvée dans la classe correspondant à ce type, via l’héritage), et le code généré cible directement cette méthode. Conséquence, si l’objet réel à l’exécution est d’une sous-classe qui redéfinit `m`, cette redéfinition n’est pas sélectionnée automatiquement (elle ne sera utilisée que si le receveur est typé comme la sous-classe), ce qui limite/empêche le polymorphisme tel qu’en Java.
+
+**3. Dans le code du visiteur TypeChecking, comment voit-on que le type est un attribut synthétisé ?**
+
+On voit que `Type` est un attribut synthétisé parce qu’il est calculé **en remontant** à partir des sous-expressions : dans `TypeChecking`, les méthodes `visit(Expr...)` commencent typiquement par visiter les enfants (`accept(this)`), puis récupèrent leurs types via `getType(enfant)` et finissent par poser le type du nœud courant via `setType(n, ...)` (par exemple après un opérateur binaire/unnaire, un accès tableau, un appel de méthode, ...). Autrement dit, la valeur `Type(n)` n’est pas transmise par le parent (attribut hérité) mais produite par le nœud à partir des informations calculées sur ses fils et stockée dans `semanticTree.attrType()`, ce qui correspond exactement à la définition d’un attribut synthétisé.
+
+**4. Pourquoi la méthode compareType appelée par la méthode checkType est-elle récursive ?**
+
+`compareType(t1, t2)` est récursive parce qu’elle ne vérifie pas seulement l’égalité stricte des types : elle doit aussi décider si `t2` est compatible avec `t1` via le sous-typage (transtypage implicite **vers le haut** dans la hiérarchie des classes). Concrètement, si `t2` est un type de classe différent de `t1`, la méthode remonte la chaîne des ancêtres de `t2` (elle récupère la classe correspondant à `t2`, puis rappelle `compareType(t1, typeDuParentDe(t2))`, puis le parent du parent, ...) jusqu’à trouver `t1` ou atteindre la racine (`Object`/`null`). Cette récursion permet donc d’accepter des affectations/passage d’arguments du style « un `C` peut être utilisé là où on attend un `B` » lorsque `C extends B`.
 
 
 ## Phase N : Titre de la phase

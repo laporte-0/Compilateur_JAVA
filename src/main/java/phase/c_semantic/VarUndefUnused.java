@@ -7,10 +7,12 @@ import compil.util.MJType;
 import phase.b_syntax.ast.AstMethod;
 import phase.b_syntax.ast.AstNode;
 import phase.b_syntax.ast.AstVisitorDefault;
+import phase.b_syntax.ast.ExprCall;
 import phase.b_syntax.ast.ExprIdent;
 import phase.b_syntax.ast.StmtArrayAssign;
 import phase.b_syntax.ast.StmtAssign;
 import phase.c_semantic.symtab.InfoKlass;
+import phase.c_semantic.symtab.InfoMethod;
 import phase.c_semantic.symtab.InfoVar;
 import phase.c_semantic.symtab.Scope;
 
@@ -156,8 +158,33 @@ public class VarUndefUnused extends AstVisitorDefault {
 	}
 
 	@Override
+	public void visit(final ExprCall n) {
+		// On visite d'abord le receveur et les args pour détecter les usages de variables
+		n.expForReceiver().accept(this);
+		for (AstNode arg : n.args()) {
+			arg.accept(this);
+		}
+		// Puis, recherche de la méthode (liaison statique) en fonction du Type du receveur
+		final MJType recvType = getType(n.expForReceiver());
+		if (recvType == null) {
+			return;
+		}
+		final InfoKlass kl = lookupKlass(recvType.name());
+		if (kl == null) {
+			// La validité du type est normalement vérifiée au contrôle de type,
+			// mais on garde une vérification défensive ici.
+			undefError(n, recvType.name());
+			return;
+		}
+		final InfoMethod m = kl.getScope().lookupMethod(n.methodId().name());
+		if (m == null) {
+			undefError(n.methodId(), n.methodId().name());
+		}
+	}
+
+	@Override
 	public void visit(final AstMethod n) {
-		// Ne pas vérifier les identificateurs de méthode ici (fait après le contrôle de type)
+		// Les appels de méthodes sont vérifiés au niveau de ExprCall (liaison statique).
 		// Retirer 'this' de la liste des variables inutilisées pour cette méthode
 		final Scope sc = getScope(n);
 		if (sc != null) {
