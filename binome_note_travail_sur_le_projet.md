@@ -50,6 +50,31 @@ Oui, c'est tout à fait possible. La grammaire permet à la méthode main d'avoi
 
 VOTRE TEXTE ICI ou SUPPRIMER CETTE LIGNE SI PAS DE COMMENTAIRE
 
+## Phase 2 : 
+
+### Questions
+
+**1. lorsque l'on écrit un visiteur héritant du visiteur par défaut AstVisitorDefault, à quoi sert l'appel à la méthode defaultVisit dans les méthodes redéfinies ?**
+
+`AstVisitorDefault` fournit un comportement de visite “standard” centralisé dans `defaultVisit` : typiquement, il assure la descente récursive dans les sous-nœuds (et la propagation des informations/attributs nécessaires au fil du parcours) de manière uniforme pour tous les nœuds. Quand on redéfinit une méthode `visit()` dans un visiteur concret, appeler `defaultVisit(n)` permet donc de conserver automatiquement ce parcours par défaut, tout en ajoutant seulement le traitement spécifique (contrôles sémantiques, collecte d’infos, ...) ; ça évite de réécrire la logique de traversée à la main et surtout d’oublier de visiter certains enfants, ce qui rend les passes plus fiables et plus faciles à maintenir.
+
+**2. lorsque l'on ajoute un nouveau type de nœud dans l'AST, faut-il modifier le visiteur par défaut AstVisitorDefault ? si oui, pourquoi ?**
+
+Oui, si on ajoute un nouveau type de nœud dans l’AST, il faut généralement mettre à jour le “contrat” de visite en ajoutant la méthode `visit(NouveauNoeud n)` (dans l’interface `AstVisitor`), puis fournir une implémentation correspondante dans `AstVisitorDefault` (souvent en déléguant à `defaultVisit(n)`). Sinon, les visiteurs existants ne compilent plus (car une méthode obligatoire manque), et/ou le nouveau nœud risque de ne pas être parcouru automatiquement : on perd alors la traversée récursive “standard” (descente dans les enfants, propagation d’infos), ce qui peut provoquer des oublis de vérification sémantique ou de génération de code sur des sous-arbres.
+
+**3. que fait notre compilateur en cas d'erreur dans la gestion de l'héritage (détection d'un cycle) ?**
+
+En cas d’erreur sur l’héritage (par exemple un cycle), notre passe de vérification de l’héritage (ex. `checkInheritance`) détecte la boucle, enregistre/affiche un message d’erreur, puis signale l’échec de l’analyse sémantique. À la fin de la phase sémantique, le compilateur considère qu’il y a des “Semantic Error(s)” et interrompt la compilation en levant une exception (type `CompilerException`) : la compilation s’arrête donc avant les phases suivantes, et aucun code MIPS n’est généré.
+
+**4. notre compilateur considère-t-il comme une erreur de redéfinition l'écrasement d'un paramètre d'appel par une variable locale ? Qu'en est-il du compilateur javac ?**
+
+Dans notre compilateur, ce n’est pas considéré comme une redéfinition : les paramètres formels sont insérés dans une portée dédiée (portée des arguments), puis le corps de la méthode et les blocs (`StmtBlock`) créent des portées filles, comme l’insertion d’une variable ne vérifie les doublons que dans la portée courante, une variable locale peut donc porter le même nom qu’un paramètre (elle le masque/shadow). En revanche, avec le compilateur Java `javac`, redéclarer un identifiant déjà utilisé par un paramètre (même dans un bloc interne) est une erreur de compilation : un paramètre ne peut pas être masqué par une variable locale.
+
+**5. notre compilateur accepte-t-il la séquence qui suit ? Qu'en est-il du compilateur javac ? `{ int a; a = 0; b = 0; int b; }`**
+
+Notre compilateur l’accepte : même si le `int b;` apparaît après `b = 0;` dans le texte, la construction de la table des symboles insère d’abord toutes les déclarations locales du bloc, puis vérifie/visite les instructions ; ainsi, `b` est déjà connu au moment où l’affectation `b = 0;` est analysée. En revanche, `javac` refuse ce code : en Java, la portée d’une variable locale commence à sa déclaration, donc utiliser `b` avant `int b;` déclenche une erreur de compilation (variable non déclarée à cet endroit).
+
+
 ## Phase N : Titre de la phase
 
 ### État d'avancement des travaux sur la phase
